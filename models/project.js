@@ -24,6 +24,7 @@ projectSchema.pre("save", async function (next) {
     this.updated_at = Date.now();
     next();
 });
+
 const Project = mongoose.model("Project", projectSchema);
 
 module.exports = Project;

@@ -3,6 +3,8 @@ const express = require("express");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 const auth = require("../middleware/auth");
+const { Unauthorized } = require("http-errors");
+const { isAdmin } = require("../utils");
 const router = new express.Router();
 // USER MODEL
 
@@ -19,17 +21,81 @@ Array.prototype.unique = function () {
 
 const getUserInfo = async (req) => {
   const token = req.header("Authorization").replace("Bearer ", "");
-  const decoded = jwt.verify(token, "germanyaccountsecretkey7394");
+  const decoded = jwt.verify(token, "miniRedmine7394");
   return user = await User.findOne({
     _id: decoded._id,
     "tokens.token": token
   }).populate('current_level').exec();
 }
-
-
+//Create
+/**
+ * @swagger
+ * /users:
+ *    post:
+ *      description: Login user
+ *      security:
+ *        - bearerAuth: []
+ *      tags:
+ *        - users
+ *      requestBody:
+ *        required: true
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                username:
+ *                  type: string
+ *                email:
+ *                  type: string
+ *                phone_number:
+ *                  type: string
+ *                password:
+ *                  type: string
+ *                avatar:
+ *                  type: string
+ *                  description: base64
+ *                role:
+ *                  type: string
+ *                  description: Is in  [admin, user]
+ *                firstName:
+ *                  type: string
+ *                lastName:
+ *                  type: string
+ *              required:
+ *                - username
+ *                - email
+ *                - phone_number
+ *                - password
+ *                - role
+ *      responses:
+ *        201:
+ *          description: Success
+ *        400:
+ *          description: Failure
+ */
+router.post("/api/users", auth, async (req, res) => {
+  try {
+    if (!isAdmin(req)) {
+      return res.status(403).send({
+        message: 'Unauthorized',
+        code: 'UNAUTHORIZED'
+      })
+    };
+    const user = new User({
+      ...req.body
+    })
+    await user.save();
+    res.status(201).send({
+      user
+    })
+  } catch (err) {
+    res.status(400).send(err)
+  }
+})
 //Register
-router.post("/api/users", async (req, res) => {
- 
+router.post("/api/users/register", async (req, res) => {
+
   const { email, phone_number, company_name, head_office_address, ward_id, form_id } = req.body;
   try {
     let isAvailable = true;
@@ -45,8 +111,8 @@ router.post("/api/users", async (req, res) => {
 
     if (email.trim() !== "" && email) {
       isAvailable = !(await User.validateEmailAndPhone(email, "email"));
-      if (!isAvailable) { 
-        err = new Error("Email hoặc số điện thoại đã tồn tại"); 
+      if (!isAvailable) {
+        err = new Error("Email hoặc số điện thoại đã tồn tại");
         err.code = "EMAIL_EXIST"
         throw err
       }
@@ -65,7 +131,7 @@ router.post("/api/users", async (req, res) => {
     const token = await user.generateAuthToken();
     await user.generateLocalPhone();
     res.status(201).send({ user, token });
-  
+
 
   } catch (e) {
     res.status(400).send({ message: e.message });
@@ -77,6 +143,8 @@ router.post("/api/users", async (req, res) => {
  * /users/login:
  *    post:
  *      description: Login user
+ *      tags:
+ *        - users
  *      requestBody:
  *        required: true
  *        content:
@@ -115,9 +183,6 @@ router.post("/api/users/login", async (req, res) => {
     delete user._doc.password
     user = {
       ...user._doc,
-      business,
-      high_level,
-      site
     }
     res.status(200).send({ user, token });
   } catch (e) {
@@ -169,6 +234,22 @@ router.patch("/api/users/:id", async (req, res) => {
 });
 
 //Logout
+/**
+ * @swagger
+ * /users/logout:
+ *    post:
+ *      description: Logout user
+ *      tags:
+ *        - users
+ *      security:
+ *        - bearerAuth: []
+ *      responses:
+ *        200:
+ *          description: Success
+ *        400:
+ *          desciption: Failure
+ */
+
 router.post("/api/users/logout", auth, async (req, res) => {
   try {
     req.user.tokens = req.user.tokens.filter(token => {
@@ -176,39 +257,45 @@ router.post("/api/users/logout", auth, async (req, res) => {
     });
     await req.user.save();
 
-    res.send("Logged Out");
+    res.status(200).send("Logged Out");
   } catch (e) {
     res.status(500).send();
   }
 });
 
 
-router.delete("/api/users/:id", async (req, res) => {
-  try {
-    const user = await User.findByIdAndDelete(req.params.id);
+// router.delete("/api/users/:id", async (req, res) => {
+//   try {
+//     const user = await User.findByIdAndDelete(req.params.id);
 
-    if (!user) {
-      return res.status(404).send();
-    }
+//     if (!user) {
+//       return res.status(404).send();
+//     }
 
-    res.send(user);
-  } catch (e) {
-    res.status(500).send();
-  }
-});
-
+//     res.send(user);
+//   } catch (e) {
+//     res.status(500).send();
+//   }
+// });
+/**
+* @swagger
+* /users/me:
+*    get:
+*      description: Get user info
+*      tags:
+*        - users
+*      security:
+*        - bearerAuth: []
+*      responses:
+*        200:
+*          description: Success
+*        400:
+*          desciption: Failure
+*/
 router.get("/api/users/me", auth, async (req, res) => {
   try {
-    const business = await Business.findOne({ user_id: req.user._id })
-    const high_level = await HighLevel.findOne({ user_id: req.user._id })
-    const site = await Site.findOne({ user_id: req.user._id })
-    delete req.user._doc.tokens
-    delete req.user._doc.password
     res.send({
-      ...req.user._doc,
-      business,
-      high_level,
-      site
+      user: req.user
     });
   } catch (e) {
     res.status(500).send(e);

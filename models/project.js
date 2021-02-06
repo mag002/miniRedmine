@@ -8,12 +8,21 @@ const projectSchema = new mongoose.Schema({
     },
     startDate: {
         type: Date,
-        required: true,
+        required: false,
     },
     endDate: {
         type: Date,
         required: false,
     },
+    createdBy: {
+        type: mongoose.SchemaTypes.ObjectId,
+        ref: "User",
+    },
+});
+projectSchema.pre("save", async function (next) {
+    const project = this;
+    this.updated_at = Date.now();
+    next();
 });
 const Project = mongoose.model("Project", projectSchema);
 

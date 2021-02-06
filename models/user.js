@@ -39,15 +39,16 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    required:true,
+    required: true,
+    enum: ['admin', 'user']
   },
   firstName: {
     type: String,
-    required:false,
+    required: false,
   },
   lastName: {
     type: String,
-    required:false,
+    required: false,
   },
   tokens: [
     {
@@ -71,9 +72,8 @@ userSchema.methods.generateAuthToken = async function () {
   const user = this;
   const token = jwt.sign(
     { _id: user._id.toString() },
-    "germanyaccountsecretkey7394"
+    "miniRedmine7394"
   );
-
   user.tokens = user.tokens.concat({ token });
   await user.save();
 

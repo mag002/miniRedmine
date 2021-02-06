@@ -12,10 +12,11 @@ const auth = async (req, res, next) => {
 
   try {
     const token = req.header("Authorization").replace("Bearer ", "");
+    console.log(req.header("Authorization"));
     if (!token) {
       return res.status(403).send({ err: "Please authenticate to continute" });
     }
-    const decoded = jwt.verify(token, "germanyaccountsecretkey7394");
+    const decoded = jwt.verify(token, "miniRedmine7394");
     const user = await User.findOne({
       _id: decoded._id,
       "tokens.token": token,

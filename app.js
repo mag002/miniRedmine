@@ -7,6 +7,7 @@ var logger = require('morgan');
 var indexRouter = require('./routes/index');
 var userRouter = require('./routes/users');
 var projectRouter = require('./routes/projects');
+var taskRouter = require('./routes/tasks');
 
 require("./db/mongoose");
 
@@ -65,6 +66,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 app.use(userRouter);
 app.use(projectRouter);
+app.use(taskRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

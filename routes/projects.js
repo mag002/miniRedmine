@@ -2,6 +2,7 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const Project = require("../models/project");
+const Task = require("../models/task");
 const ProjectUser = require("../models/project_user");
 const auth = require("../middleware/auth");
 const { isAdmin } = require("../utils");
@@ -384,6 +385,90 @@ router.patch(`${route_path}/:id/members`, auth, async (req, res) => {
     res.status(400).send({
       message: err.message || "Something went wrong",
       code: 'UNKNOWN'
+    });
+  }
+})
+
+
+/**
+  * @swagger
+  * /projects/{projectId}/tasks:
+  *   get:
+  *     description: Get list task of project
+  *     tags:
+  *       - project
+  *     security:
+  *       - bearerAuth: []
+  *     parameters:
+  *       - in: path
+  *         name: projectId
+  *         required: true
+  *         schema:
+  *           type: string
+  *         desciption: The Project ID
+  *       - in: query
+  *         name: page
+  *         schema:
+  *           type: integer
+  *         description: The page number (start from 1)
+  *       - in: query
+  *         name: limit
+  *         schema:
+  *           type: integer
+  *         description: The limit of list item
+  *       - in: query
+  *         name: where
+  *         schema:
+  *           type: string
+  *         description: JSON of where 
+  *     responses:
+  *        200:
+  *          description: Success
+  *        400:
+  *          desciption: Failure
+  */
+router.get(`${route_path}/:id/tasks`, auth, async (req, res) => {
+  const {
+    limit,
+    page,
+    where
+  } = req.query
+  try {
+    const _projectUser = await ProjectUser.findOne({
+      user: req.user._id.toString(),
+      project: req.params.id,
+    }).populate('project').exec();
+
+    const _isAdmin = isAdmin(req);
+
+    if (!(_isAdmin || _projectUser)) {
+      return res.status(403).send({ message: "Unauthorized", code: 'UNAUTHORIZED' })
+    }
+    let _where = {};
+    console.log(where)
+    if (where) {
+      _where = JSON.parse(where)
+    }
+    const tasks = await Task.find({
+      project: req.params.id,
+      ..._where,
+    })
+      // .limit(parseInt(limit))
+      // .skip(parseInt((page - 1) * limit))
+      // .select(" -short_description -detail_description -code -expire_date")
+      .populate(
+        'assignee createdBy tag targetVersion'
+      )
+      .exec();
+    res.status(201).send({
+      projects: _projectUser.project,
+      tasks
+    })
+  } catch (e) {
+    console.log(e);
+    res.status(400).send({
+      message: e.message || "Something went wrong",
+      code: e.code || 'UNKNOWN'
     });
   }
 })

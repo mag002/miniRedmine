@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const Tag = require('../models/tag')
 // const Notification = require("./notification");
 const taskSchema = new mongoose.Schema({
     title: {
@@ -9,7 +10,8 @@ const taskSchema = new mongoose.Schema({
         type: String,
         required: true,
         default: 'assigned',
-        enum: ['assigned', 'delayed', 'inprogress', 'toBeValidated', 'toBeTested', 'toBeMerged', 'resolved']
+        default: 'assigned',
+        enum: ['assigned', 'delayed', 'inprogress', 'toBeValidated', 'toBeTested', 'toBeMerged', 'resolved', 'deleted'] // only manager can delete task
     },
     description: {
         type: String,
@@ -25,15 +27,11 @@ const taskSchema = new mongoose.Schema({
         ref: "Project",
         required: true,
     },
-    role: {
-        type: String,
-        required: false,
-        enum: ['manager', 'dev', 'qc']
-    },
     priority: {
         type: String,
         required: false,
-        enum: ['low', 'medium', 'high', 'extra_high']
+        enum: ['low', 'medium', 'high', 'extra_high'],
+        default: 'medium'
     },
     targetVersion: {
         type: mongoose.SchemaTypes.ObjectId,
@@ -49,10 +47,16 @@ const taskSchema = new mongoose.Schema({
         type: Number,
         required: false
     },
-    tag: {
+    tag: [{
+        type: mongoose.SchemaTypes.ObjectId,
+        ref: "Tag",
+    }],
+    type: {
         type: String,
-        required: false,
-    }
+        required: true,
+        enum: ['task', 'bug', 'improvement'],
+        default: 'task'
+    },
     //createdAt
     //updatedAt
 

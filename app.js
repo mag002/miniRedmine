@@ -8,6 +8,7 @@ var indexRouter = require('./routes/index');
 var userRouter = require('./routes/users');
 var projectRouter = require('./routes/projects');
 var taskRouter = require('./routes/tasks');
+var logTimeRouter = require('./routes/log_times');
 
 require("./db/mongoose");
 
@@ -67,6 +68,7 @@ app.use('/', indexRouter);
 app.use(userRouter);
 app.use(projectRouter);
 app.use(taskRouter);
+app.use(logTimeRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
